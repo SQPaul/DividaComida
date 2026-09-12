@@ -24,6 +24,7 @@
 </head><body>
 <div class="start" id="start"><div class="startbox"><div class="eyebrow">Tarde familiar · edición especial</div><h1>Un paseo <span>por Italia</span></h1><p>Cuatro tiempos, una mesa y una tarde para saborear sin apuro.</p><div class="credits"><div class="credit"><span class="role">Chef</span><span class="name">Isadora León</span></div><div class="credit"><span class="role">Ayudantes de cocina</span><span class="name">Paul Sandoval · Miriam Soto</span></div></div><button class="begin" id="begin">Comenzar paseo</button></div></div>
 <button class="sound" id="sound" aria-label="Pausar o reanudar música">♫</button>
+<audio id="music" loop playsinline preload="auto"></audio>
 <section class="hero"><div><small>La carta de esta tarde</small><h1>Un paseo <span>por Italia</span></h1><p>Un recorrido por sabores italianos, desde el primer bocado hasta el último pecado.</p><div class="hint">Descubrir el menú</div></div></section>
 <main class="menu">
 <section class="course"><div><div class="num">I · Antipasto</div><h2>Amore al primo morso</h2><div class="rule"></div><p>Tomates, rúcula, prosciutto, mozzarella y bruschetta.</p></div><div class="photo"><img src="assets/antipasto.png?v=20260912-2" alt="Antipasto"><span class="tag">Antipasto</span></div></section>
@@ -33,6 +34,27 @@
 </main>
 <section class="final"><div><h2>Buon appetito</h2><div class="flag"><span></span><span></span><span></span></div></div></section>
 <script>
-const overlay=document.getElementById('start'),begin=document.getElementById('begin'),sound=document.getElementById('sound');let ctx=null,timer=null,playing=false,next=0,step=0;const tempo=102,beat=60/tempo/2;const seq=[440,523.25,659.25,523.25,493.88,440,392,493.88,587.33,493.88,440,392,349.23,440,523.25,440,392,349.23,329.63,392,493.88,392,349.23,329.63];function note(freq,time,dur=.24){const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();o.type='triangle';o.frequency.value=freq;f.type='lowpass';f.frequency.value=1900;g.gain.setValueAtTime(.0001,time);g.gain.exponentialRampToValueAtTime(.065,time+.015);g.gain.exponentialRampToValueAtTime(.0001,time+dur);o.connect(f).connect(g).connect(ctx.destination);o.start(time);o.stop(time+dur+.03)}function schedule(){while(next<ctx.currentTime+.35){note(seq[step%seq.length],next,beat*.82);if(step%6===0)note(seq[step%seq.length]/2,next,beat*2.6);next+=beat;step++}}function musicOn(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)();ctx.resume();next=ctx.currentTime+.05;if(!timer)timer=setInterval(schedule,80);playing=true;sound.textContent='♫'}function musicOff(){if(ctx)ctx.suspend();playing=false;sound.textContent='♩'}begin.addEventListener('click',()=>{overlay.classList.add('hide');sound.classList.add('show');musicOn()});sound.addEventListener('click',()=>playing?musicOff():musicOn());const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.18});document.querySelectorAll('.course').forEach(x=>ob.observe(x));
+const overlay=document.getElementById('start'),begin=document.getElementById('begin'),sound=document.getElementById('sound'),music=document.getElementById('music');
+let ready=false,playing=false,musicUrl='';
+const seq=[440,523.25,659.25,523.25,493.88,440,392,493.88,587.33,493.88,440,392,349.23,440,523.25,440,392,349.23,329.63,392,493.88,392,349.23,329.63];
+function makeWav(){
+  const sr=22050,dur=34,n=Math.floor(sr*dur),buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const wr=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  wr(0,'RIFF');v.setUint32(4,36+n*2,true);wr(8,'WAVE');wr(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);wr(36,'data');v.setUint32(40,n*2,true);
+  const beat=.294117647,notes=seq.length;
+  for(let i=0;i<n;i++){
+    const t=i/sr,k=Math.floor(t/beat)%notes,phase=(t*seq[k])%1,tri=1-4*Math.abs(phase-.5),env=Math.min(1,(t%beat)/.025)*Math.min(1,(beat-(t%beat))/.055);
+    const bassPhase=(t*(seq[k]/2))%1,bass=(1-4*Math.abs(bassPhase-.5))*((k%6===0)?0.24:0.06);
+    const s=Math.max(-1,Math.min(1,(tri*.34+bass)*env));v.setInt16(44+i*2,s*32767,true);
+  }
+  return new Blob([buf],{type:'audio/wav'});
+}
+function ensureMusic(){if(ready)return;musicUrl=URL.createObjectURL(makeWav());music.src=musicUrl;music.volume=.85;ready=true}
+function playMusic(){ensureMusic();const p=music.play();playing=true;sound.textContent='♫';if(p&&p.catch)p.catch(()=>{playing=false;sound.textContent='▶'})}
+function pauseMusic(){music.pause();playing=false;sound.textContent='▶'}
+begin.addEventListener('click',()=>{overlay.classList.add('hide');sound.classList.add('show');playMusic()});
+sound.addEventListener('click',()=>playing?pauseMusic():playMusic());
+music.addEventListener('play',()=>{playing=true;sound.textContent='♫'});music.addEventListener('pause',()=>{playing=false;sound.textContent='▶'});
+const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.18});document.querySelectorAll('.course').forEach(x=>ob.observe(x));
 </script>
 </body></html>
