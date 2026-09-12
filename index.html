@@ -24,13 +24,13 @@
 </head><body>
 <div class="start" id="start"><div class="startbox"><div class="eyebrow">Tarde familiar · edición especial</div><h1>Un paseo <span>por Italia</span></h1><p>Cuatro tiempos, una mesa y una tarde para saborear sin apuro.</p><div class="credits"><div class="credit"><span class="role">Chef</span><span class="name">Isadora León</span></div><div class="credit"><span class="role">Ayudantes de cocina</span><span class="name">Paul Sandoval · Miriam Soto</span></div></div><button class="begin" id="begin">Comenzar paseo</button></div></div>
 <button class="sound" id="sound" aria-label="Pausar o reanudar música">♫</button>
-<audio id="music" loop playsinline preload="auto"></audio>
+<audio id="music" loop playsinline autoplay preload="auto"></audio>
 <section class="hero"><div><small>La carta de esta tarde</small><h1>Un paseo <span>por Italia</span></h1><p>Un recorrido por sabores italianos, desde el primer bocado hasta el último pecado.</p><div class="hint">Descubrir el menú</div></div></section>
 <main class="menu">
-<section class="course"><div><div class="num">I · Antipasto</div><h2>Amore al primo morso</h2><div class="rule"></div><p>Tomates, rúcula, prosciutto, mozzarella y bruschetta.</p></div><div class="photo"><img src="assets/antipasto.png?v=20260912-2" alt="Antipasto"><span class="tag">Antipasto</span></div></section>
-<section class="course"><div><div class="num">II · Plato de fondo</div><h2>Salmone nel Bosco</h2><div class="rule"></div><p>Pasta rellena de salmón con ricotta y salsa de setas con crema.</p></div><div class="photo"><img src="assets/plato_fondo.png?v=20260912-2" alt="Pasta rellena de salmón con ricotta y salsa de setas"><span class="tag">Il piatto principale</span></div></section>
-<section class="course"><div><div class="num">III · Postre</div><h2>El pecado permitido</h2><div class="rule"></div><p>Brownie diabético con helado de vainilla.</p></div><div class="photo"><img src="assets/postre.png?v=20260912-2" alt="Brownie con helado de vainilla"><span class="tag">Dolce</span></div></section>
-<section class="course"><div><div class="num">IV · Bebestibles</div><h2>Ácido, dulce y peligroso</h2><div class="rule"></div><p>Pisco sour y limonada.</p></div><div class="photo"><img src="assets/bebestibles.png?v=20260912-2" alt="Pisco sour y limonada"><span class="tag">Salute!</span></div></section>
+<section class="course"><div><div class="num">I · Antipasto</div><h2>Amore al primo morso</h2><div class="rule"></div><p>Tomates, rúcula, prosciutto, mozzarella y bruschetta.</p></div><div class="photo"><img src="assets/antipasto.png?v=20260912-3" alt="Antipasto"><span class="tag">Antipasto</span></div></section>
+<section class="course"><div><div class="num">II · Plato de fondo</div><h2>Salmone nel Bosco</h2><div class="rule"></div><p>Pasta rellena de salmón con ricotta y salsa de setas con crema.</p></div><div class="photo"><img src="assets/plato_fondo.png?v=20260912-3" alt="Pasta rellena de salmón con ricotta y salsa de setas"><span class="tag">Il piatto principale</span></div></section>
+<section class="course"><div><div class="num">III · Postre</div><h2>El pecado permitido</h2><div class="rule"></div><p>Brownie diabético con helado de vainilla.</p></div><div class="photo"><img src="assets/postre.png?v=20260912-3" alt="Brownie con helado de vainilla"><span class="tag">Dolce</span></div></section>
+<section class="course"><div><div class="num">IV · Bebestibles</div><h2>Ácido, dulce y peligroso</h2><div class="rule"></div><p>Pisco sour y limonada.</p></div><div class="photo"><img src="assets/bebestibles.png?v=20260912-3" alt="Pisco sour y limonada"><span class="tag">Salute!</span></div></section>
 </main>
 <section class="final"><div><h2>Buon appetito</h2><div class="flag"><span></span><span></span><span></span></div></div></section>
 <script>
@@ -49,11 +49,23 @@ function makeWav(){
   }
   return new Blob([buf],{type:'audio/wav'});
 }
-function ensureMusic(){if(ready)return;musicUrl=URL.createObjectURL(makeWav());music.src=musicUrl;music.volume=.85;ready=true}
-function playMusic(){ensureMusic();const p=music.play();playing=true;sound.textContent='♫';if(p&&p.catch)p.catch(()=>{playing=false;sound.textContent='▶'})}
+function ensureMusic(){if(ready)return;musicUrl=URL.createObjectURL(makeWav());music.src=musicUrl;music.volume=.9;music.muted=false;ready=true}
+async function playMusic(){
+  ensureMusic();
+  try{await music.play();playing=true;sound.textContent='♫';return true}
+  catch(e){playing=false;sound.textContent='▶';return false}
+}
 function pauseMusic(){music.pause();playing=false;sound.textContent='▶'}
+async function tryAutoplay(){sound.classList.add('show');await playMusic()}
+function unlockOnFirstGesture(){if(!playing)playMusic()}
+
+ensureMusic();
+tryAutoplay();
+window.addEventListener('pageshow',tryAutoplay);
+['pointerdown','touchstart','click','keydown'].forEach(evt=>document.addEventListener(evt,unlockOnFirstGesture,{capture:true,once:true,passive:true}));
+
 begin.addEventListener('click',()=>{overlay.classList.add('hide');sound.classList.add('show');playMusic()});
-sound.addEventListener('click',()=>playing?pauseMusic():playMusic());
+sound.addEventListener('click',e=>{e.stopPropagation();playing?pauseMusic():playMusic()});
 music.addEventListener('play',()=>{playing=true;sound.textContent='♫'});music.addEventListener('pause',()=>{playing=false;sound.textContent='▶'});
 const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.18});document.querySelectorAll('.course').forEach(x=>ob.observe(x));
 </script>
